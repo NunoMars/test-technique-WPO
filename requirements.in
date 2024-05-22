@@ -1,0 +1,6 @@
+Django
+djangorestframework
+psycopg2-binary
+django-redis
+dj-database-url
+requests
