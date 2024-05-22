@@ -7,13 +7,13 @@ from .models import Operation
 from .serializers import OperationSerializer
 import requests
 from django.conf import settings
-import logging
+from .logs_config import logging
 
 
 logger = logging.getLogger(__name__)
 
 
-def get_weather(town):
+def get_weather(town: str) -> dict:
     """Get weather data from OpenWeather API"""
     api_key = settings.OPENWEATHER_API_KEY
     url = f"http://api.openweathermap.org/data/2.5/weather?q={town}&appid={api_key}&units=metric"
@@ -28,14 +28,17 @@ def get_weather(town):
 
 def validate_restrictions(restrictions, arguments):
     """Validate restrictions for an operation"""
+
     for restriction in restrictions:
         logger.info(f"Validating restriction: {restriction}")
         for key, value in restriction.items():
             if key == "@date":
                 if not (value["after"] <= arguments["date"] <= value["before"]):
+                    logger.debug(f"Date condition failed: {value}")
                     return False
             elif key == "@level":
                 if not (value["lt"] < arguments["level"] < value["gt"]):
+                    logger.debug(f"Level condition failed: {value}")
                     return False
             elif key == "@meteo":
                 weather = get_weather(arguments["meteo"]["town"])
@@ -43,20 +46,22 @@ def validate_restrictions(restrictions, arguments):
                 if weather:
                     temp = weather["main"]["temp"]
                     if not (temp > value["temp"]["gt"]):
+                        logger.debug(f"Temperature condition failed: {value}")
                         return False
                     if not (
                         weather["weather"][0]["main"].lower() == value["is"].lower()
                     ):
+                        logger.debug(f"Weather condition failed: {value}")
                         return False
                 else:
                     return False
             elif key == "@or":
                 if not any(validate_restrictions([cond], arguments) for cond in value):
-                    logger.info(f"OR condition failed: {value}")
+                    logger.debug(f"OR condition failed: {value}")
                     return False
             elif key == "@and":
                 if not all(validate_restrictions([cond], arguments) for cond in value):
-                    logger.info(f"AND condition failed: {value}")
+                    logger.debug(f"AND condition failed: {value}")
                     return False
     return True
 
@@ -67,10 +72,11 @@ class AddOperationView(APIView):
     def post(self, request):
         serializer = OperationSerializer(data=request.data)
         if serializer.is_valid():
-            logger.info(f"Adding operation: {serializer.data}")
+            validated_data = serializer.validated_data
+            logger.info(f"Adding operation: {validated_data}")
             serializer.save()
             return Response(
-                {"status": "success", "operation": serializer.data},
+                {"status": "success", "operation": validated_data},
                 status=status.HTTP_201_CREATED,
             )
         logger.error(f"Error adding operation: {serializer.errors}")

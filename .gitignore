@@ -1,2 +1,4 @@
 venv
 .env
+operations\__pycache__\*.pyc
+verification_system\__pycache__\*.pyc

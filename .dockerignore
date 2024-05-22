@@ -1,0 +1,6 @@
+venv
+.env-sample
+.gitignore
+compose.yml
+README.md
+requirements.in

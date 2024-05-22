@@ -4,19 +4,27 @@ FROM python:3.12-slim
 # Définir le répertoire de travail dans le conteneur
 WORKDIR /app
 
-# Copier le fichier requirements.txt dans le répertoire de travail
-COPY requirements.txt .
+# Mettre à jour la liste des packages
+RUN apt update 
 
-# Installer les dépendances
-RUN python3.12 -m venv venv
-RUN . venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt
+# Installer python3-pip
+RUN apt install -y python3-pip
 
-# Copier le contenu de votre application dans le répertoire de travail
-COPY . .
+# Copier les fichiers dans le répertoire de travail
+COPY requirements.txt /app
+
+# Mettre à jour pip et installer les dépendances
+RUN pip3 install --upgrade pip && pip3 install -r requirements.txt
+
+# Copier les fichiers dans le répertoire de travail
+COPY /verification_system /app
+
+# Makemigrations
+RUN python3 manage.py makemigrations
 
 # Exposer le port sur lequel l'application s'exécutera
 EXPOSE 8000
 
 # Commande pour exécuter l'application
-CMD ["sh", "-c", ". venv/bin/activate && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+CMD ["sh", "-c", "python3 manage.py migrate && python3 manage.py runserver 0.0.0.0:8000"]
 
