@@ -7,4 +7,4 @@ from .models import Operation
 class OperationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Operation
-        fields = "__all__"
+        fields = ["id", "name", "priority", "restrictions"]
